@@ -20,6 +20,8 @@ namespace ai
         private int mapWidth;
         private int mapHeight;
 
+        private int baseX, baseY;
+
         // timers
         private int searchMapTimer = 5;
 
@@ -48,13 +50,14 @@ namespace ai
         {
             Console.WriteLine("Got here!");
             searchMapTimer--;
-            Console.WriteLine("Turns until Search map for resources: " + searchMapTimer);
 
             if (gameMessage.Turn == 0)
             {
                 Console.WriteLine("FIRST TURN");
                 mapWidth = gameMessage.Game_Info.Map_Width * 2 + 1;
                 mapHeight = gameMessage.Game_Info.Map_Height * 2 + 1;
+                baseX = mapWidth / 2;
+                baseY = mapHeight / 2;
                 map = new Tile[mapWidth, mapHeight];
                 for (int i = 0; i < map.GetLength(0); i++)
                 {
@@ -104,6 +107,7 @@ namespace ai
                     myUnits[index].type = unitUpdate.Type;
                     myUnits[index].resource = unitUpdate.Resource;
                     myUnits[index].health = unitUpdate.Health;
+                    myUnits[index].can_attack = unitUpdate.Can_Attack;
                 }                  
                 else
                 {
@@ -138,6 +142,7 @@ namespace ai
             GameCommand cmd;
 
             Console.WriteLine("Generating Command for unit " + unit.unit_id + " type " + unit.type);
+            Console.WriteLine(unit.type);
 
             if (unit.type == "worker") cmd = GetWorkerCommand(unit);
             else return new GameCommand()
@@ -152,29 +157,78 @@ namespace ai
 
         private GameCommand GetWorkerCommand(Unit unit)
         {
-            List<Tile> neighbors = new List<Tile>();
-            neighbors.Add(map[unit.x + mapWidth / 2 + 1, unit.y + mapHeight / 2]);
-            neighbors.Add(map[unit.x + mapWidth / 2, unit.y + mapHeight / 2 + 1]);
-            neighbors.Add(map[unit.x + mapWidth / 2 - 1, unit.y + mapHeight / 2]);
-            neighbors.Add(map[unit.x + mapWidth / 2, unit.y + mapHeight / 2 - 1]);
-
-            for (int i = 0; i < neighbors.Count; i++)
+            bool stuckThisTurn = false;
+            if (unit.x == unit.lastX && unit.y == unit.lastY)
             {
-                if (neighbors[i] != null)
+                stuckThisTurn = true;
+                unit.numTurnsStuck++;
+                if (unit.numTurnsStuck > 4) return new GameCommand()
                 {
-                    if (neighbors[i].Resources != null)
+                    command = "MOVE",
+                    unit = unit.unit_id,
+                    dir = "NESW".Substring(rand.Next(4), 1)
+                };
+            }
+            unit.lastX = unit.x;
+            unit.lastY = unit.y;
+           
+            if (unit.resource > 0)
+            {
+                int dx, dy;
+                string direction;
+                dx = baseX - (unit.x + mapWidth / 2);
+                dy = baseY - (unit.y + mapWidth / 2);
+                Console.WriteLine("moving from " + (unit.x + mapWidth / 2) + 
+                    " " + (unit.y + mapHeight / 2));
+                Console.WriteLine("to " + baseX + " " + baseY);
+                Console.WriteLine("dx " + dx + " dy " + dy);
+                if (stuckThisTurn)
+                {
+                    if (dy > 0) direction = "S";
+                    else if (dy < 0) direction = "N";
+                    else if (dx > 0) direction = "E";
+                    else direction = "W";
+                }
+                else
+                {
+                    if (dx > 0) direction = "E";
+                    else if (dx < 0) direction = "W";
+                    else if (dy > 0) direction = "S";
+                    else direction = "N";
+                }
+                return new GameCommand()
+                {
+                    command = "MOVE",
+                    unit = unit.unit_id,
+                    dir = direction
+                };
+            }
+            else
+            {
+                List<Tile> neighbors = new List<Tile>();
+                neighbors.Add(map[unit.x + mapWidth / 2 + 1, unit.y + mapHeight / 2]);
+                neighbors.Add(map[unit.x + mapWidth / 2, unit.y + mapHeight / 2 + 1]);
+                neighbors.Add(map[unit.x + mapWidth / 2 - 1, unit.y + mapHeight / 2]);
+                neighbors.Add(map[unit.x + mapWidth / 2, unit.y + mapHeight / 2 - 1]);
+
+                for (int i = 0; i < neighbors.Count; i++)
+                {
+                    if (neighbors[i] != null)
                     {
-                        string direction;
-                        if (i == 0) direction = "E";
-                        else if (i == 1) direction = "S";
-                        else if (i == 2) direction = "W";
-                        else direction = "N";
-                        return new GameCommand()
+                        if (neighbors[i].Resources != null)
                         {
-                            command = "GATHER",
-                            unit = unit.unit_id,
-                            dir = direction
-                        };
+                            string direction;
+                            if (i == 0) direction = "E";
+                            else if (i == 1) direction = "S";
+                            else if (i == 2) direction = "W";
+                            else direction = "N";
+                            return new GameCommand()
+                            {
+                                command = "GATHER",
+                                unit = unit.unit_id,
+                                dir = direction
+                            };
+                        }
                     }
                 }
             }
@@ -434,30 +488,9 @@ public class Unit
 
     public List<Tile> currentPath;
 
-    public GameCommand MoveAlongPath()
-    {
-        string moveDir;
-        int dy, dx;
-        dx = currentPath[0].X - x;
-        dy = currentPath[0].Y - y;
-        if (dx != 0)
-        {
-            if (dx == 1) moveDir = "E";
-            else moveDir = "W";
-        }
-        else
-        {
-            if (dy == 1) moveDir = "S";
-            else moveDir = "N";
-        }
-        currentPath.RemoveAt(0);
-        return new GameCommand()
-        {
-            command = "MOVE",
-            unit = unit_id,
-            dir = moveDir
-        };
-    }
+    public int lastX;
+    public int lastY;
+    public int numTurnsStuck = 0;
 }
 
 static class Worker
