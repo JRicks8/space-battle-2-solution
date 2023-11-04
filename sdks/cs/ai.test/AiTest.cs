@@ -13,7 +13,7 @@ namespace ai.test
         public void Test_AI_Moves_A_Unit()
         {
             var subject = new Ai();
-            var result = subject.Go(new ai.GameMessage{
+            var result = subject.Go(new Ai.GameMessage{
                 Unit_Updates = new List<UnitUpdate>{
                     new UnitUpdate{
                         Id = 5
