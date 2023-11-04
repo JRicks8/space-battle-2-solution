@@ -1,0 +1,14 @@
+source "https://rubygems.org"
+
+ruby ">= 3.2"
+
+gem 'gosu'
+gem 'awesome_print'
+gem "easy_diff"
+gem 'tmx'
+gem 'rspec'
+gem 'slop'
+gem 'oj'
+gem 'pry'
+gem 'childprocess'
+gem 'warning'
