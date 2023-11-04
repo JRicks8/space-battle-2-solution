@@ -159,6 +159,7 @@ namespace ai
         {
             if (unit.randomTurns > 0)
             {
+                unit.numTurnsStuck = 0;
                 unit.randomTurns--;
                 return new GameCommand()
                 {
@@ -174,6 +175,7 @@ namespace ai
                 unit.numTurnsStuck++;
                 if (unit.numTurnsStuck > 4)
                 {
+                    unit.numTurnsStuck = 0;
                     unit.randomTurns = 5;
                     return new GameCommand()
                     {
